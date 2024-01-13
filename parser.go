@@ -11,6 +11,7 @@ import (
 type (
 	Parser struct {
 		line        string
+		errorState  bool
 		gameCounter int
 		Log         map[string]Game `json:"log"`
 	}
@@ -47,20 +48,27 @@ func (p *Parser) Parse(filename string) error {
 func (p *Parser) parseLine(line string) {
 	p.line = line
 
-	// @todo: avoid to continue to other funcs when one was already parsed
-
-	p.initGame()
-	p.addPlayer()
-	p.addKill()
+	p.checkErrorState()
+	if p.initGame() || p.addPlayer() || p.addKill() {
+		return
+	}
 }
 
 func (p *Parser) gameKey() string {
 	return fmt.Sprintf("game_%02d", p.gameCounter)
 }
 
-func (p *Parser) initGame() {
+func (p *Parser) checkErrorState() {
+	if p.errorState {
+		if _, ok := p.Log[p.gameKey()]; ok {
+			delete(p.Log, p.gameKey())
+		}
+	}
+}
+
+func (p *Parser) initGame() bool {
 	if !strings.Contains(p.line, "InitGame:") {
-		return
+		return false
 	}
 
 	p.gameCounter++
@@ -71,37 +79,42 @@ func (p *Parser) initGame() {
 			KillsByMeans: make(map[string]int),
 		}
 	}
+
+	return true
 }
 
-func (p *Parser) addPlayer() {
+func (p *Parser) addPlayer() bool {
 	if !strings.Contains(p.line, "ClientUserinfoChanged:") {
-		return
+		return false
 	}
 
 	game, ok := p.Log[p.gameKey()]
 	if !ok {
-		return
+		p.errorState = true
+		return true
 	}
 
 	matches := regexp.MustCompile(`n\\([^\\]+)\\`).FindStringSubmatch(p.line)
 	if len(matches) < 2 {
-		return
+		p.errorState = true
+		return true
 	}
 
 	playerLine := matches[1]
 	for _, player := range game.Players {
 		if player == playerLine {
-			return
+			return true
 		}
 	}
 
 	game.Players = append(game.Players, playerLine)
 	p.Log[p.gameKey()] = game
+	return true
 }
 
-func (p *Parser) addKill() {
+func (p *Parser) addKill() bool {
 	if !strings.Contains(p.line, "Kill:") {
-		return
+		return false
 	}
 
 	game := p.Log[p.gameKey()]
@@ -110,7 +123,8 @@ func (p *Parser) addKill() {
 
 	matches := regexp.MustCompile(`\d+ \d+ \d+: (.+?) killed (.+?) by ([^ ]+)`).FindStringSubmatch(p.line)
 	if len(matches) < 4 {
-		return
+		p.errorState = true
+		return true
 	}
 
 	killer, victim, weapon := matches[1], matches[2], matches[3]
@@ -118,10 +132,11 @@ func (p *Parser) addKill() {
 
 	if killer != "<world>" {
 		p.addPlayerKill(killer)
-		return
+		return true
 	}
 
 	p.addWorldKill(victim)
+	return true
 }
 
 func (p *Parser) addWeaponKill(weapon string) {

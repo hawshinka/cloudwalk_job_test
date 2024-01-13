@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-const filename = "qgames3.log"
+const filename = "qgames.log"
 
 func main() {
 	p := Parser{}
