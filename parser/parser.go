@@ -96,14 +96,15 @@ func (p *Parser) addPlayer() bool {
 		return true
 	}
 
-	playerLine := matches[1]
-	for _, player := range game.Players {
-		if player == playerLine {
+	newPlayerName := matches[1]
+	game := p.Log[p.gameKey()]
+	for _, existingPlayer := range game.Players {
+		if existingPlayer == newPlayerName {
 			return true
 		}
 	}
 
-	game.Players = append(game.Players, playerLine)
+	game.Players = append(game.Players, newPlayerName)
 	p.Log[p.gameKey()] = game
 	return true
 }
