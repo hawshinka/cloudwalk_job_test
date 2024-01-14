@@ -89,7 +89,7 @@ func (p *Parser) addPlayer() bool {
 		return false
 	}
 
-	matches := regexp.MustCompile(`n\\([^\\]+)\\`).FindStringSubmatch(p.line)
+	matches := regexp.MustCompile(`ClientUserinfoChanged: \d+ n\\([^\\]+)\\`).FindStringSubmatch(p.line)
 	if len(matches) < 2 {
 		p.errorState = true
 		return true
@@ -113,7 +113,7 @@ func (p *Parser) addKill() bool {
 		return false
 	}
 
-	matches := regexp.MustCompile(`\d+ \d+ \d+: (.+?) killed (.+?) by ([^ ]+)`).FindStringSubmatch(p.line)
+	matches := regexp.MustCompile(`Kill: \d+ \d+ \d+: (.+?) killed (.+?) by ([^ ]+)`).FindStringSubmatch(p.line)
 	if len(matches) < 4 {
 		p.errorState = true
 		return true
