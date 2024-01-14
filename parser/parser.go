@@ -62,7 +62,6 @@ func (p *Parser) checkErrorState() {
 	if p.errorState {
 		if _, ok := p.Log[p.gameKey()]; ok {
 			delete(p.Log, p.gameKey())
-			p.gameCounter--
 		}
 	}
 }
@@ -114,15 +113,15 @@ func (p *Parser) addKill() bool {
 		return false
 	}
 
-	game := p.Log[p.gameKey()]
-	game.TotalKills++
-	p.Log[p.gameKey()] = game
-
 	matches := regexp.MustCompile(`\d+ \d+ \d+: (.+?) killed (.+?) by ([^ ]+)`).FindStringSubmatch(p.line)
 	if len(matches) < 4 {
 		p.errorState = true
 		return true
 	}
+
+	game := p.Log[p.gameKey()]
+	game.TotalKills++
+	p.Log[p.gameKey()] = game
 
 	killer, victim, weapon := matches[1], matches[2], matches[3]
 	p.addWeaponKill(weapon)
