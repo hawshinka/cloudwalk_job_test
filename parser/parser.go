@@ -90,12 +90,6 @@ func (p *Parser) addPlayer() bool {
 		return false
 	}
 
-	game, ok := p.Log[p.gameKey()]
-	if !ok {
-		p.errorState = true
-		return true
-	}
-
 	matches := regexp.MustCompile(`n\\([^\\]+)\\`).FindStringSubmatch(p.line)
 	if len(matches) < 2 {
 		p.errorState = true
