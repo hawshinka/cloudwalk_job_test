@@ -62,6 +62,7 @@ func (p *Parser) checkErrorState() {
 	if p.errorState {
 		if _, ok := p.Log[p.gameKey()]; ok {
 			delete(p.Log, p.gameKey())
+			p.gameCounter--
 		}
 	}
 }
@@ -71,6 +72,7 @@ func (p *Parser) initGame() bool {
 		return false
 	}
 
+	p.errorState = false
 	p.gameCounter++
 	if _, ok := p.Log[p.gameKey()]; !ok {
 		p.Log[p.gameKey()] = Game{
@@ -84,7 +86,7 @@ func (p *Parser) initGame() bool {
 }
 
 func (p *Parser) addPlayer() bool {
-	if !strings.Contains(p.line, "ClientUserinfoChanged:") {
+	if p.errorState || !strings.Contains(p.line, "ClientUserinfoChanged:") {
 		return false
 	}
 
@@ -113,7 +115,7 @@ func (p *Parser) addPlayer() bool {
 }
 
 func (p *Parser) addKill() bool {
-	if !strings.Contains(p.line, "Kill:") {
+	if p.errorState || !strings.Contains(p.line, "Kill:") {
 		return false
 	}
 
@@ -140,13 +142,13 @@ func (p *Parser) addKill() bool {
 }
 
 func (p *Parser) addWeaponKill(weapon string) {
-	p.Log[p.gameKey()].KillsByMeans[weapon] += 1
+	p.Log[p.gameKey()].KillsByMeans[weapon]++
 }
 
 func (p *Parser) addPlayerKill(killer string) {
-	p.Log[p.gameKey()].Kills[killer] += 1
+	p.Log[p.gameKey()].Kills[killer]++
 }
 
 func (p *Parser) addWorldKill(victim string) {
-	p.Log[p.gameKey()].Kills[victim] -= 1
+	p.Log[p.gameKey()].Kills[victim]--
 }
