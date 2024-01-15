@@ -24,12 +24,11 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(parsedLog)
+
 	if err := writeOutputToFile(outFile, parsedLog); err != nil {
 		fmt.Println(parsedLog)
 		panic(err)
 	}
-
 }
 
 func writeOutputToFile(outFile, parsedLog string) error {
