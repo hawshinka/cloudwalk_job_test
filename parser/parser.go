@@ -126,6 +126,10 @@ func (p *Parser) addKill() bool {
 	killer, victim, weapon := matches[1], matches[2], matches[3]
 	p.addWeaponKill(weapon)
 
+	if killer == victim {
+		return true
+	}
+
 	if killer != "<world>" {
 		p.addPlayerKill(killer)
 		return true
@@ -141,8 +145,18 @@ func (p *Parser) addWeaponKill(weapon string) {
 
 func (p *Parser) addPlayerKill(killer string) {
 	p.Log[p.gameKey()].Kills[killer]++
+	p.handleZeroKills(killer)
 }
 
 func (p *Parser) addWorldKill(victim string) {
 	p.Log[p.gameKey()].Kills[victim]--
+	p.handleZeroKills(victim)
+}
+
+func (p *Parser) handleZeroKills(player string) {
+	if _, ok := p.Log[p.gameKey()].Kills[player]; ok {
+		if p.Log[p.gameKey()].Kills[player] == 0 {
+			delete(p.Log[p.gameKey()].Kills, player)
+		}
+	}
 }
