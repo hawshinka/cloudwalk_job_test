@@ -6,7 +6,7 @@
 * make run
 * make run in=qgames.log
   * Specify an input file, optional.
-* make run out=games.json 
+* make run out=qgames.json 
   * Specify an output file, optional.
 
 ## To run the unit tests:
