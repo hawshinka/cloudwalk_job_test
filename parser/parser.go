@@ -2,6 +2,7 @@ package parser
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"os"
 	"regexp"
@@ -13,7 +14,7 @@ type (
 		line        string
 		errorState  bool
 		gameCounter int
-		Log         map[string]Game `json:"log"`
+		log         map[string]Game `json:"log"`
 	}
 
 	Game struct {
@@ -24,25 +25,25 @@ type (
 	}
 )
 
-func (p *Parser) Parse(filename string) error {
+func (p *Parser) Parse(filename string) (string, error) {
 	file, err := os.Open(filename)
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer file.Close()
 
-	p.Log = make(map[string]Game)
+	p.log = make(map[string]Game)
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		p.parseLine(scanner.Text())
 	}
-
 	if err := scanner.Err(); err != nil {
-		return err
+		return "", err
 	}
 
-	return nil
+	out, _ := json.Marshal(p.log)
+	return string(out), nil
 }
 
 func (p *Parser) parseLine(line string) {
@@ -60,8 +61,8 @@ func (p *Parser) gameKey() string {
 
 func (p *Parser) checkErrorState() {
 	if p.errorState {
-		if _, ok := p.Log[p.gameKey()]; ok {
-			delete(p.Log, p.gameKey())
+		if _, ok := p.log[p.gameKey()]; ok {
+			delete(p.log, p.gameKey())
 		}
 	}
 }
@@ -73,8 +74,8 @@ func (p *Parser) initGame() bool {
 
 	p.errorState = false
 	p.gameCounter++
-	if _, ok := p.Log[p.gameKey()]; !ok {
-		p.Log[p.gameKey()] = Game{
+	if _, ok := p.log[p.gameKey()]; !ok {
+		p.log[p.gameKey()] = Game{
 			Players:      make([]string, 0),
 			Kills:        make(map[string]int),
 			KillsByMeans: make(map[string]int),
@@ -96,7 +97,7 @@ func (p *Parser) addPlayer() bool {
 	}
 
 	newPlayerName := matches[1]
-	game := p.Log[p.gameKey()]
+	game := p.log[p.gameKey()]
 	for _, existingPlayer := range game.Players {
 		if existingPlayer == newPlayerName {
 			return true
@@ -104,7 +105,7 @@ func (p *Parser) addPlayer() bool {
 	}
 
 	game.Players = append(game.Players, newPlayerName)
-	p.Log[p.gameKey()] = game
+	p.log[p.gameKey()] = game
 	return true
 }
 
@@ -119,9 +120,9 @@ func (p *Parser) addKill() bool {
 		return true
 	}
 
-	game := p.Log[p.gameKey()]
+	game := p.log[p.gameKey()]
 	game.TotalKills++
-	p.Log[p.gameKey()] = game
+	p.log[p.gameKey()] = game
 
 	killer, victim, weapon := matches[1], matches[2], matches[3]
 	p.addWeaponKill(weapon)
@@ -140,23 +141,23 @@ func (p *Parser) addKill() bool {
 }
 
 func (p *Parser) addWeaponKill(weapon string) {
-	p.Log[p.gameKey()].KillsByMeans[weapon]++
+	p.log[p.gameKey()].KillsByMeans[weapon]++
 }
 
 func (p *Parser) addPlayerKill(killer string) {
-	p.Log[p.gameKey()].Kills[killer]++
+	p.log[p.gameKey()].Kills[killer]++
 	p.handleZeroKills(killer)
 }
 
 func (p *Parser) addWorldKill(victim string) {
-	p.Log[p.gameKey()].Kills[victim]--
+	p.log[p.gameKey()].Kills[victim]--
 	p.handleZeroKills(victim)
 }
 
 func (p *Parser) handleZeroKills(player string) {
-	if _, ok := p.Log[p.gameKey()].Kills[player]; ok {
-		if p.Log[p.gameKey()].Kills[player] == 0 {
-			delete(p.Log[p.gameKey()].Kills, player)
+	if _, ok := p.log[p.gameKey()].Kills[player]; ok {
+		if p.log[p.gameKey()].Kills[player] == 0 {
+			delete(p.log[p.gameKey()].Kills, player)
 		}
 	}
 }
